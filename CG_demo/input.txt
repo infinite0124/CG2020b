@@ -5,3 +5,8 @@ saveCanvas 1
 setColor 255 0 0
 drawLine 666 200 300 400 150 DDA
 saveCanvas 2
+drawPolygon polygon1 50 50 200 180 250 300 DDA
+saveCanvas 3
+drawEllipse ellipse1 50 50 300 200
+saveCanvas 4
+
