@@ -185,8 +185,6 @@ def draw_curve(p_list, algorithm):
     for i in range(n):
         px.append (p_list[i][0])
         py.append (p_list[i][1])
-        #if i != 0:
-         #   result.extend(draw_line([[x[i],y[i]], [x[i - 1], y[i - 1]]], "DDA"))
     
     if algorithm == "Bezier":
         for u in range(0, precision):
@@ -198,7 +196,7 @@ def draw_curve(p_list, algorithm):
             points.append((int(px[0]), int(py[0])))
     elif algorithm == "B-spline":
         pass
-    ##points = list(set(points))
+    
     for i in range(0,len(points) - 1):
         line = [points[i], points[i + 1]]
         result.extend(draw_line(line, "DDA"))
@@ -214,6 +212,13 @@ def translate(p_list, dx, dy):
     :param dy: (int) 垂直方向平移量
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
     """
+    '''
+    points=[]
+    for p in p_list:
+        points.append((p[0]+dx,p[1]+dy))
+    result
+    return result
+    '''
     pass
 
 
@@ -226,7 +231,12 @@ def rotate(p_list, x, y, r):
     :param r: (int) 顺时针旋转角度（°）
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
     """
-    pass
+    result=[]
+    for p in p_list:
+        x1=x+(p[0]-x)*math.cos(r)-(p[1]-y)*math.sin(r)
+        y1=y+(p[0]-x)*math.sin(r)+(p[1]-y)*math.cos(r)
+        result.append((int(x1),int(y1)))
+    return result
 
 
 def scale(p_list, x, y, s):

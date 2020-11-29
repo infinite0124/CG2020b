@@ -5,6 +5,7 @@ import sys
 import os
 import cg_algorithms as alg
 import numpy as np
+import math
 from PIL import Image
 
 if __name__ == '__main__':
@@ -24,6 +25,7 @@ if __name__ == '__main__':
             if line[0] == 'resetCanvas':
                 width = int(line[1])
                 height = int(line[2])
+                item_dict.clear()
             elif line[0] == 'saveCanvas':
                 save_name = line[1]
                 canvas = np.zeros([height, width, 3], np.uint8)
@@ -97,5 +99,35 @@ if __name__ == '__main__':
                     'curve', points, algorithm,
                     np.array(pen_color)
                 ]
+            elif line[0]=='translate':
+                item_id = line[1]
+                dx=int(line[2])
+                dy=int(line[3])
+                for p in item_dict[item_id][1]:
+                    p[0]+=dx
+                    p[1]+=dy
+                
+            elif line[0]=='rotate':
+                item_id = line[1]
+                x=int(line[2])
+                y=int(line[3])
+                r=float(line[4])
+                item_id = line[1]
+                x=int(line[2])
+                y=int(line[3])
+                r=int(line[4])
+                for p in item_dict[item_id][1]:
+                    p[0]=int(x+(p[0]-x)*math.cos(r)-(p[1]-y)*math.sin(r))
+                    p[1]=int(y+(p[0]-x)*math.sin(r)+(p[1]-y)*math.cos(r))
+                    #print(p)
+                
+            elif line[0]=='scale':
+                item_id = line[1]
+                x=int(line[2])
+                y=int(line[3])
+                s=float(line[4])
+                for p in item_dict[item_id][1]:
+                    p[0]=int(p[0]*s+x*(1-s))
+                    p[1]=int(p[1]*s+y*(1-s))
 
             line = fp.readline()
