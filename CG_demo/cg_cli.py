@@ -103,31 +103,30 @@ if __name__ == '__main__':
                 item_id = line[1]
                 dx=int(line[2])
                 dy=int(line[3])
-                for p in item_dict[item_id][1]:
-                    p[0]+=dx
-                    p[1]+=dy
+                item_dict[item_id][1]=alg.translate(item_dict[item_id][1],dx,dy)
                 
             elif line[0]=='rotate':
                 item_id = line[1]
                 x=int(line[2])
                 y=int(line[3])
                 r=float(line[4])
-                item_id = line[1]
-                x=int(line[2])
-                y=int(line[3])
-                r=int(line[4])
-                for p in item_dict[item_id][1]:
-                    p[0]=int(x+(p[0]-x)*math.cos(r)-(p[1]-y)*math.sin(r))
-                    p[1]=int(y+(p[0]-x)*math.sin(r)+(p[1]-y)*math.cos(r))
-                    #print(p)
+                item_dict[item_id][1]=alg.rotate(item_dict[item_id][1],x,y,r)
                 
             elif line[0]=='scale':
                 item_id = line[1]
                 x=int(line[2])
                 y=int(line[3])
                 s=float(line[4])
-                for p in item_dict[item_id][1]:
-                    p[0]=int(p[0]*s+x*(1-s))
-                    p[1]=int(p[1]*s+y*(1-s))
+                item_dict[item_id][1]=alg.scale(item_dict[item_id][1],x,y,s)
+            
+            elif line[0]=='clip':
+                item_id=line[1]
+                x_min=min(line[1],line[3])
+                x_max=max(line[1],line[3])
+                y_min=min(line[2],line[4])
+                y_max=max(line[2],line[4])
+                alg=line[5]
+                p_list=[item_dict[item_id][1][0],item_dict[item_id][1][-1]]
+                item_dict[item_id][1]=alg.clip(p_list,x_min,y_min,x_max,y_max,alg)
 
             line = fp.readline()

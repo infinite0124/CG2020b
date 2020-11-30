@@ -212,14 +212,10 @@ def translate(p_list, dx, dy):
     :param dy: (int) 垂直方向平移量
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
     """
-    '''
-    points=[]
+    result=[]
     for p in p_list:
-        points.append((p[0]+dx,p[1]+dy))
-    result
+        result.append((p[0]+dx,p[1]+dy))
     return result
-    '''
-    pass
 
 
 def rotate(p_list, x, y, r):
@@ -248,8 +244,25 @@ def scale(p_list, x, y, s):
     :param s: (float) 缩放倍数
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
     """
-    pass
+    result=[]
+    for p in p_list:
+        x1=p[0]*s+x*(1-s)
+        y1=p[1]*s+y*(1-s)
+        result.append((int(x1),int(y1)))
+    return result
 
+def encode(x,y,x_min,y_min,x_max,y_max):
+    c=(y>y_max)<<3+(y<y_min)<<2+(x>x_max)<<1+(x<x_min)
+    return c
+
+def inter_point(border,x1,y1,x2,y2):
+    if x1!=x2:
+        u=(border-x1)/(x2-x1)
+        if u>=0 and u<=1:#valid
+            return (border,y1+u(y2-y1))
+        else:
+            return (x1,y1)
+            
 
 def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
     """线段裁剪
@@ -262,4 +275,38 @@ def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
     :param algorithm: (string) 使用的裁剪算法，包括'Cohen-Sutherland'和'Liang-Barsky'
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1]]) 裁剪后线段的起点和终点坐标
     """
-    pass
+    x1,y1=p_list[0]
+    x2,y2=p_list[1]
+    result=[]
+    if algorithm=='Cohen-Sutherland':
+        flag=1
+        while flag:
+            c1=encode(x1,y1,x_min,y_min,x_max,y_max)
+            c2=encode(x2,y2,x_min,y_min,x_max,y_max)
+            if (c1 & c2)==0:#probably part of line in window
+                if (c1 or c2)!=0:#at least one point out of window
+                    if c1==0:# p1 in window,exchange p1 and p2 to ensure p1 out of window
+                        temp_x=x1
+                        temp_y=y1
+                        x1=x2
+                        y1=y2
+                        x2=temp_x
+                        y2=temp_y
+                    if c1&1:#left
+                        x1,y1=inter_point(x_min,x1,y1,x2,y2)
+                    elif c1&2:#right
+                        x1,y1=inter_point(x_max,x1,y1,x2,y2)
+                    elif c1&4:#down
+                        y1,x1=inter_point(y_min,y1,x1,y2,x2)
+                    elif c1&8:#up
+                        y1,x1=inter_point(y_max,y1,x1,y2,x2)
+                else:#p1 and p2 both in window
+                    flag=0
+            else:# line out of window      
+                flag=0
+        p_list=[(x1,y1),(x2,y2)]
+        result=draw_line(p_list,'DDA')
+        return result
+    
+
+        
