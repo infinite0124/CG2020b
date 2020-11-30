@@ -121,12 +121,16 @@ if __name__ == '__main__':
             
             elif line[0]=='clip':
                 item_id=line[1]
-                x_min=min(line[1],line[3])
-                x_max=max(line[1],line[3])
-                y_min=min(line[2],line[4])
-                y_max=max(line[2],line[4])
-                alg=line[5]
+                x0=int(line[2])
+                y0=int(line[3])
+                x1=int(line[4])
+                y1=int(line[5])
+                x_min=min(x0,x1)
+                x_max=max(x0,x1)
+                y_min=min(y0,y1)
+                y_max=max(y0,y1)
+                algorithm=line[6]
                 p_list=[item_dict[item_id][1][0],item_dict[item_id][1][-1]]
-                item_dict[item_id][1]=alg.clip(p_list,x_min,y_min,x_max,y_max,alg)
-
+                item_dict[item_id][1]=alg.clip(p_list,x_min,y_min,x_max,y_max,algorithm)
+                
             line = fp.readline()

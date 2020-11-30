@@ -47,6 +47,8 @@ def draw_line(p_list, algorithm):
         if x0 > x1:
             x0, y0, x1, y1 = x1, y1, x0, y0
         if x0 == x1:
+            if y0>y1:
+                y0,y1=y1,y0
             for y in range(y0, y1 + 1):
                 result.append((int(x0), int(y)))
         else:
@@ -252,16 +254,16 @@ def scale(p_list, x, y, s):
     return result
 
 def encode(x,y,x_min,y_min,x_max,y_max):
-    c=(y>y_max)<<3+(y<y_min)<<2+(x>x_max)<<1+(x<x_min)
+    c=(int(y>y_max)<<3)+(int(y<y_min)<<2)+(int(x>x_max)<<1)+int(x<x_min)
     return c
 
 def inter_point(border,x1,y1,x2,y2):
     if x1!=x2:
         u=(border-x1)/(x2-x1)
         if u>=0 and u<=1:#valid
-            return (border,y1+u(y2-y1))
+            return [border,int(y1+u*(y2-y1))]
         else:
-            return (x1,y1)
+            return [x1,y1]
             
 
 def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
@@ -280,7 +282,11 @@ def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
     result=[]
     if algorithm=='Cohen-Sutherland':
         flag=1
+        i=0
         while flag:
+            i+=1
+            if i>4:
+                break
             c1=encode(x1,y1,x_min,y_min,x_max,y_max)
             c2=encode(x2,y2,x_min,y_min,x_max,y_max)
             if (c1 & c2)==0:#probably part of line in window
@@ -304,9 +310,8 @@ def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
                     flag=0
             else:# line out of window      
                 flag=0
-        p_list=[(x1,y1),(x2,y2)]
-        result=draw_line(p_list,'DDA')
-        return result
+        result=[[x1,y1],[x2,y2]]
+    return result
     
 
         
