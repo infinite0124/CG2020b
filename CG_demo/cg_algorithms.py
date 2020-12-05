@@ -255,7 +255,7 @@ def scale(p_list, x, y, s):
 
 def encode(x,y,x_min,y_min,x_max,y_max):
     c=(int(y>y_max)<<3)+(int(y<y_min)<<2)+(int(x>x_max)<<1)+int(x<x_min)
-    return c
+    return c#Liang-Barsky
 
 def inter_point(border,x1,y1,x2,y2):
     if x1!=x2:
@@ -265,6 +265,19 @@ def inter_point(border,x1,y1,x2,y2):
         else:
             return [x1,y1]
             
+def update(p,q,u):
+    res=True
+    if p==0 and q<0:
+        res=False
+    if p<0:
+        u[0]=max(u[0],q/p)
+    elif p>0:
+        u[1]=min(u[1],q/p)
+    if u[0]>u[1]:
+        res=False
+    print("u:",u)
+    print("res:",res)
+    return res
 
 def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
     """线段裁剪
@@ -311,6 +324,25 @@ def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
             else:# line out of window      
                 flag=0
         result=[[x1,y1],[x2,y2]]
+    elif algorithm=='Liang-Barsky':
+        u=[0,1]
+        dx=x2-x1
+        dy=y2-y1
+        p1,p2,p3,p4=dx,dx,dy,dy
+        q1,q2,q3,q4=x1-x_min,x_max-x1,y1-y_min,y_max-y1
+        if update(-p1,q1,u):
+            if update(p2,q2,u):
+                if update(-p3,q3,u):
+                    if update(p4,q4,u):
+                        u1,u2=u
+                        if u2<1:
+                            x2=x1+u2*dx
+                            y2=y1+u2*dy
+                        if u1>0:
+                            x1=x1+u1*dx
+                            y1=y1+u1*dy
+        result=[[int(x1),int(y1)],[int(x2),int(y2)]]
+        print(result)
     return result
     
 
