@@ -170,7 +170,7 @@ def draw_ellipse(p_list):
     return result
 
 
-def draw_curve(p_list, algorithm):
+def draw_curve(p_list, algorithm,flag=0):
     """绘制曲线
 
     :param p_list: (list of list of int: [[x0, y0], [x1, y1], [x2, y2], ...]) 曲线的控制点坐标列表
@@ -202,6 +202,12 @@ def draw_curve(p_list, algorithm):
     for i in range(0,len(points) - 1):
         line = [points[i], points[i + 1]]
         result.extend(draw_line(line, "DDA"))
+
+    if flag==1:
+        for p in p_list:
+            x0,y0,x1,y1=p[0]-5,p[1]-5,p[0]+5,p[1]+5
+            result.extend(draw_ellipse([[x0,y0],[x1,y1]]))
+       
     return result
 
 
