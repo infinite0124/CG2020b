@@ -235,10 +235,11 @@ def rotate(p_list, x, y, r):
     :param r: (int) 顺时针旋转角度（°）
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
     """
+    h=math.radians(r)
     result=[]
     for p in p_list:
-        x1=x+(p[0]-x)*math.cos(r)-(p[1]-y)*math.sin(r)
-        y1=y+(p[0]-x)*math.sin(r)+(p[1]-y)*math.cos(r)
+        x1=x+(p[0]-x)*math.cos(h)-(p[1]-y)*math.sin(h)
+        y1=y+(p[0]-x)*math.sin(h)+(p[1]-y)*math.cos(h)
         result.append((int(x1),int(y1)))
     return result
 
@@ -329,7 +330,7 @@ def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
                     flag=0
             else:# line out of window      
                 flag=0
-        result=[[x1,y1],[x2,y2]]
+        result=[[int(x1),int(y1)],[int(x2),int(y2)]]
     elif algorithm=='Liang-Barsky':
         u=[0,1]
         dx=x2-x1
@@ -348,7 +349,6 @@ def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
                             x1=x1+u1*dx
                             y1=y1+u1*dy
         result=[[int(x1),int(y1)],[int(x2),int(y2)]]
-        print(result)
     return result
     
 

@@ -2,14 +2,15 @@
 # -*- coding:utf-8 -*-
 
 import sys
+import math
 import cg_algorithms as alg
 from typing import Optional
 from PyQt5.QtWidgets import (QApplication, QMainWindow, qApp, QGraphicsScene,
                              QGraphicsView, QGraphicsItem, QListWidget,
                              QHBoxLayout, QWidget, QStyleOptionGraphicsItem,
-                             QSlider, QLabel,QPushButton)
+                             QSlider, QLabel,QPushButton,QColorDialog)
 from PyQt5.QtGui import QPainter, QMouseEvent, QColor
-from PyQt5.QtCore import QRectF, Qt, QByteArray
+from PyQt5.QtCore import QRectF, Qt, QByteArray, QPointF
 
 
 class MyCanvas(QGraphicsView):
@@ -27,42 +28,29 @@ class MyCanvas(QGraphicsView):
         self.temp_algorithm = ''
         self.temp_id = ''
         self.temp_item = None
-        #color
-        self.red_val = 0
-        self.blue_val = 0
-        self.green_val = 0
+
         #curve
         self.curve_stage=0
         self.curve_pid=-1
+        '''
         self.curve_ok=QPushButton("OK",self)
         self.curve_ok.setEnabled(False)
         self.curve_ok.clicked.connect(self.finish_draw)
         self.curve_ok.move(495,550)
         self.curve_ok.setVisible(False)
-        #translate,
+        '''
+        #translate,rotate,scale
         self.transform_stage=0
         self.start_point=[]
         self.start_pos=[]
-
+        self.centre=[]
         self.pos_label=QLabel(self)
         self.pos_label.move(100,200)
         self.red_sld = QSlider(Qt.Horizontal, self)
         self.red_sld.hide()
 
-    def set_pen(self):
-        self.red_sld.setFocusPolicy(Qt.NoFocus)
-        self.red_sld.setGeometry(30, 40, 100, 30)
-        self.red_sld.setMinimum(0)
-        self.red_sld.setMaximum(255)
-        self.red_sld.valueChanged.connect(self.pen_color)
-        self.red_sld.show()
-        #red_label=QLabel(self)
-
-        #red_label.setText(QByteArray::number(red_sld.value()))
-        #red_sld.valueChanged[int].connect(self.changeValue)
-
-    def pen_color(self):
-        self.red_val = self.red_sld.value()
+        #clip
+        self.rect=None
 
     def start_draw_line(self, algorithm, item_id):
         self.status = 'line'
@@ -71,7 +59,6 @@ class MyCanvas(QGraphicsView):
 
     def start_draw_ellipse(self, item_id):
         self.status = 'ellipse'
-        self.temp_algorithm = 'ellipse'
         self.temp_id = item_id
 
     def start_draw_polygon(self,algorithm,item_id):
@@ -87,17 +74,17 @@ class MyCanvas(QGraphicsView):
     def start_translate(self):
         self.status = 'translate'
 
+    def start_rotate(self):
+        self.status='rotate'
+
+    def start_scale(self):
+        self.status='scale'
+
+    def start_clip(self,algorithm):
+        self.status='clip'
+        self.temp_algorithm=algorithm
 
     def finish_draw(self):
-        if self.status=='curve':
-            self.temp_item.flag=0
-            self.item_dict[self.temp_id] = self.temp_item
-            self.list_widget.addItem(self.temp_id)
-            self.curve_stage=0
-            self.curve_pid=-1
-            self.curve_ok.setEnabled(False)
-            self.curve_ok.setVisible(False)
-            
         self.temp_id = self.main_window.get_id()
         self.temp_item=None
         self.updateScene([self.sceneRect()])
@@ -108,7 +95,6 @@ class MyCanvas(QGraphicsView):
             self.selected_id = ''
 
     def selection_changed(self, selected):
-        print(selected)
         self.main_window.statusBar().showMessage('图元选择： %s' % selected)
         if self.selected_id != '':
             self.item_dict[self.selected_id].selected = False
@@ -125,17 +111,15 @@ class MyCanvas(QGraphicsView):
         y = int(pos.y())
         if self.status == 'line' or self.status == 'ellipse':
             self.temp_item = MyItem(self.temp_id, self.status,
-                                    [[x, y], [x, y]], self.red_val,
-                                    self.blue_val, self.green_val,
-                                    self.temp_algorithm)
+                                    [[x, y], [x, y]], 
+                                    self.temp_algorithm,color=self.main_window.color)
             self.scene().addItem(self.temp_item)
         elif self.status=='polygon':
             if event.buttons()==Qt.LeftButton:
                 if self.temp_item is None:
                     self.temp_item = MyItem(self.temp_id, self.status, 
-                                            [[x, y],[x,y]], self.red_val,
-                                            self.blue_val,self.green_val,
-                                            self.temp_algorithm)
+                                            [[x, y],[x,y]],
+                                            self.temp_algorithm,color=self.main_window.color)
                     self.scene().addItem(self.temp_item)
                 else:
                     self.temp_item.p_list.append([x,y])
@@ -144,29 +128,53 @@ class MyCanvas(QGraphicsView):
                 self.list_widget.addItem(self.temp_id)
                 self.finish_draw()
         elif self.status=='curve':
-            if self.temp_item is None:
-                self.temp_item = MyItem(self.temp_id, self.status,
-                                        [[x, y], [x, y],[x,y]], self.red_val,
-                                        self.blue_val, self.green_val,
-                                        self.temp_algorithm)
-                self.scene().addItem(self.temp_item)
-            if self.curve_stage==1:
-                for i in range(len(self.temp_item.p_list)):
-                    x0,y0=self.temp_item.p_list[i]
-                    if pow(x-x0,2)+pow(y-y0,2)<=25:
-                        self.curve_pid=i
-        elif self.status=='translate':
             if event.buttons()==Qt.LeftButton:
+                if self.temp_item is None:
+                    self.temp_item = MyItem(self.temp_id, self.status,
+                                            [[x, y], [x, y],[x,y]], 
+                                            self.temp_algorithm,color=self.main_window.color)
+                    self.scene().addItem(self.temp_item)
+                if self.curve_stage==1:
+                    for i in range(len(self.temp_item.p_list)):
+                        x0,y0=self.temp_item.p_list[i]
+                        if pow(x-x0,2)+pow(y-y0,2)<=25:
+                            self.curve_pid=i
+            elif event.buttons()==Qt.RightButton:
+                if self.temp_item is not None:
+                    self.temp_item.flag=0
+                    self.item_dict[self.temp_id] = self.temp_item
+                    self.list_widget.addItem(self.temp_id)
+                    self.curve_stage=0
+                    self.curve_pid=-1
+                    self.finish_draw()
+        elif self.status=='translate' or self.status=='rotate' or self.status=='scale':
+            original_status=self.status
+            if event.buttons()==Qt.LeftButton:
+                original_selected=self.selected_id
                 for key in self.item_dict:
                     if self.item_dict[key].boundingRect().contains(x,y):
-                        self.selection_changed(key)
-                        self.transform_stage=1
-                        self.status='translate'
-                        self.start_pos=self.item_dict[self.selected_id].p_list
-                        self.start_point=[x,y]
-                        break
+                        if original_selected!=key:
+                            self.selection_changed(key)
+                            self.transform_stage=1
+                            self.status=original_status
+                            self.start_pos=self.item_dict[self.selected_id].p_list
+                            self.centre=[(self.item_dict[key].boundingRect().left()+self.item_dict[key].boundingRect().right())/2,
+                                         (self.item_dict[key].boundingRect().top()+self.item_dict[key].boundingRect().bottom())/2]
+                            break
+                self.start_point=[x,y]
             elif event.buttons()==Qt.RightButton:
                 self.clear_selection()
+        elif self.status=='clip':
+            if event.buttons()==Qt.LeftButton:
+                if self.temp_item is not None:
+                    self.scene().removeItem(self.temp_item)
+                self.temp_item = MyItem(self.temp_id, 'polygon',
+                                        [[x, y], [x, y],[x,y],[x,y]], 
+                                        'DDA',color=QColor(255,0,0))
+                self.scene().addItem(self.temp_item)
+            elif event.buttons()==Qt.RightButton:
+                if self.temp_item is not None:
+                    self.scene().removeItem(self.temp_item)
         self.updateScene([self.sceneRect()])
         super().mousePressEvent(event)
 
@@ -175,18 +183,38 @@ class MyCanvas(QGraphicsView):
         x = int(pos.x())
         y = int(pos.y())
         if self.status == 'line' or self.status == 'ellipse':
-            self.temp_item.p_list[1] = [x, y]
+            if self.temp_item is not None:
+                self.temp_item.p_list[1] = [x, y]
         elif self.status == 'curve':
-            if self.curve_stage==0:
-                self.temp_item.p_list[2]=[x, y]
-                x0,y0=self.temp_item.p_list[0]
-                self.temp_item.p_list[1]=[int((x0+x)/2),int((y0+y)/2)]#[int((x0+x)/2),int((y0+y)/2)]
-            else:#adjust
-                self.temp_item.p_list[self.curve_pid]=[x,y]
+            if self.temp_item is not None:
+                if self.curve_stage==0:
+                    self.temp_item.p_list[2]=[x, y]
+                    x0,y0=self.temp_item.p_list[0]
+                    self.temp_item.p_list[1]=[int((x0+x)/2),int((y0+y)/2)]#[int((x0+x)/2),int((y0+y)/2)]
+                else:#adjust
+                    self.temp_item.p_list[self.curve_pid]=[x,y]
         elif self.status=='translate':
             #if self.transform_stage==1:
             if self.selected_id!='':
                 self.item_dict[self.selected_id].p_list=alg.translate(self.start_pos,x-self.start_point[0],y-self.start_point[1])
+        elif self.status=='rotate':
+            if self.selected_id!='':
+                xr,yr=self.centre
+                r=math.degrees(math.atan2(y-self.start_point[1],x-self.start_point[0]))
+                self.item_dict[self.selected_id].p_list=alg.rotate(self.start_pos,xr,yr,r)
+        elif self.status=='clip':
+            if self.temp_item is not None:
+                x0,y0=self.temp_item.p_list[0]
+                self.temp_item.p_list=[[x0,y0],[x,y0],[x,y],[x0,y]]
+        '''
+        elif self.status=='scale':
+            if self.selected_id!='':
+                xr,yr=self.centre
+                s=max((x-self.start_point[0])/100,(y-self.start_point[1])/100)
+                #print(self.start_pos)
+                #print(s)
+                self.item_dict[self.selected_id].p_list=alg.scale(self.start_pos,xr,yr,s)
+        '''
         #self.pos_label.setText(x)
         #pos_label.setText(QByteArray::number(x))
         self.updateScene([self.sceneRect()])
@@ -200,18 +228,45 @@ class MyCanvas(QGraphicsView):
             self.item_dict[self.temp_id] = self.temp_item
             self.list_widget.addItem(self.temp_id)
             self.finish_draw()
-        if self.status=='curve':
-            self.temp_item.flag=1
-            self.curve_stage=1
-            self.curve_ok.setEnabled(True)
-            self.curve_ok.setVisible(True)
-            
+        elif self.status=='curve':
+            if self.temp_item is not None:
+                self.temp_item.flag=1
+                self.curve_stage=1
+
             #self.item_dict[self.temp_id] = self.temp_item
             #self.list_widget.addItem(self.temp_id)
             #self.finish_draw()
+        elif self.status=='translate' or self.status=='rotate':
+            if self.selected_id!='':
+                self.start_pos=self.item_dict[self.selected_id].p_list
+                self.centre=[(self.item_dict[self.selected_id].boundingRect().left()+self.item_dict[self.selected_id].boundingRect().right())/2,
+                                         (self.item_dict[self.selected_id].boundingRect().top()+self.item_dict[self.selected_id].boundingRect().bottom())/2]
+        elif self.status=='clip':
+            if self.temp_item is not None:
+                for i in self.item_dict:
+                    if self.item_dict[i].item_type=='line' and self.temp_item.boundingRect().intersects(self.item_dict[i].boundingRect()):
+                       rect=QRectF(self.temp_item.boundingRect())
+                       self.item_dict[i].p_list=alg.clip(self.item_dict[i].p_list,rect.left(),rect.top(),rect.right(),rect.bottom(),self.temp_algorithm)
+                self.scene().removeItem(self.temp_item)
+                self.finish_draw()
+                        
         self.updateScene([self.sceneRect()])
         super().mouseReleaseEvent(event)
 
+    def wheelEvent(self,event):
+        angle=event.angleDelta()
+        
+        if self.status=='scale':
+            if self.selected_id!='':
+                xr,yr=self.centre
+                if angle.y()>0:
+                    s=angle.y()/100
+                else:
+                    s=100/abs(angle.y())
+                self.item_dict[self.selected_id].p_list=alg.scale(self.start_pos,xr,yr,s)
+                self.start_pos=self.item_dict[self.selected_id].p_list
+        self.updateScene([self.sceneRect()])
+        super().wheelEvent(event)
 
 class MyItem(QGraphicsItem):
     """
@@ -221,11 +276,9 @@ class MyItem(QGraphicsItem):
                  item_id: str,
                  item_type: str,
                  p_list: list,
-                 red_val: int,
-                 blue_val: int,
-                 green_val: int,
                  algorithm: str = '',
                  parent: QGraphicsItem = None,
+                 color: QColor=QColor(0,0,0),
                  flag: int = 0):
         """
 
@@ -241,16 +294,15 @@ class MyItem(QGraphicsItem):
         self.p_list = p_list  # 图元参数
         self.algorithm = algorithm  # 绘制算法，'DDA'、'Bresenham'、'Bezier'、'B-spline'等
         self.selected = False
-        self.red_val = red_val
-        self.blue_val = blue_val
-        self.green_val = green_val
+        self.color=color
         self.flag=flag
+
 
     def paint(self,
               painter: QPainter,
               option: QStyleOptionGraphicsItem,
               widget: Optional[QWidget] = ...) -> None:
-        painter.setPen(QColor(self.red_val, self.green_val, self.blue_val))
+        painter.setPen(self.color)
         if self.item_type == 'line':
             item_pixels = alg.draw_line(self.p_list, self.algorithm)
             for p in item_pixels:
@@ -334,6 +386,9 @@ class MainWindow(QMainWindow):
         self.canvas_widget.main_window = self
         self.canvas_widget.list_widget = self.list_widget
 
+        #color
+        self.color=QColor(0,0,0)
+
         # 设置菜单栏
         menubar = self.menuBar()
         file_menu = menubar.addMenu('文件')
@@ -354,13 +409,12 @@ class MainWindow(QMainWindow):
         curve_b_spline_act = curve_menu.addAction('B-spline')
         edit_menu = menubar.addMenu('编辑')
         translate_act = edit_menu.addAction('平移')
-        '''
         rotate_act = edit_menu.addAction('旋转')
         scale_act = edit_menu.addAction('缩放')
         clip_menu = edit_menu.addMenu('裁剪')
         clip_cohen_sutherland_act = clip_menu.addAction('Cohen-Sutherland')
         clip_liang_barsky_act = clip_menu.addAction('Liang-Barsky')
-        '''
+        
         # 连接信号和槽函数
         exit_act.triggered.connect(qApp.quit)
         line_naive_act.triggered.connect(self.line_naive_action)
@@ -373,12 +427,11 @@ class MainWindow(QMainWindow):
         curve_bezier_act.triggered.connect(self.curve_bezier_action)
         curve_b_spline_act.triggered.connect(self.curve_b_spline_action)
         translate_act.triggered.connect(self.translate_action)
-        '''
         rotate_act.triggered.connect(self.rotate_action)
         scale_act.triggered.connect(self.scale_action)
         clip_cohen_sutherland_act.triggered.connect(self.clip_cohen_sutherland_action)
         clip_liang_barsky_act.triggered.connect(self.clip_liang_barsky_action)
-        '''
+        
         self.list_widget.currentTextChanged.connect(
             self.canvas_widget.selection_changed)
 
@@ -452,7 +505,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage('平移')
         self.list_widget.clearSelection()
         self.canvas_widget.clear_selection()
-    '''    
+        
     def rotate_action(self):
         self.canvas_widget.start_rotate()
         self.statusBar().showMessage('旋转')
@@ -460,27 +513,30 @@ class MainWindow(QMainWindow):
         self.canvas_widget.clear_selection()
 
     def scale_action(self):
-        self.canvas_widget.start_translate()
+        self.canvas_widget.start_scale()
         self.statusBar().showMessage('缩放')
         self.list_widget.clearSelection()
         self.canvas_widget.clear_selection()
 
     def clip_cohen_sutherland_action(self):
-        self.canvas_widget.start_translate()
+        self.canvas_widget.start_clip('Cohen-Sutherland')
         self.statusBar().showMessage('Cohen-Sutherland裁剪')
         self.list_widget.clearSelection()
         self.canvas_widget.clear_selection()
 
     def clip_liang_barsky_action(self):
-        self.canvas_widget.start_translate()
-        self.statusBar().showMessage('Liang-barsky裁剪')
+        self.canvas_widget.start_clip('Liang-Barsky')
+        self.statusBar().showMessage('Liang-Barsky裁剪')
         self.list_widget.clearSelection()
         self.canvas_widget.clear_selection()
-    '''
+    
 
     def set_pen_action(self):
-        self.canvas_widget.set_pen()
+        #self.canvas_widget.set_pen()
         self.statusBar().showMessage('设置画笔')
+        color = QColorDialog.getColor()
+        if color.isValid():
+            self.color=color
         self.list_widget.clearSelection()
         self.canvas_widget.clear_selection()
 
