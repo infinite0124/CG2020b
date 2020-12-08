@@ -8,7 +8,9 @@ from typing import Optional
 from PyQt5.QtWidgets import (QApplication, QMainWindow, qApp, QGraphicsScene,
                              QGraphicsView, QGraphicsItem, QListWidget,
                              QHBoxLayout, QWidget, QStyleOptionGraphicsItem,
-                             QSlider, QLabel,QPushButton,QColorDialog)
+                             QSlider, QLabel,QPushButton,QColorDialog,
+                             QDialog,QFormLayout,QSpinBox,QDialogButtonBox,
+                             QFileDialog,QMessageBox)
 from PyQt5.QtGui import QPainter, QMouseEvent, QColor
 from PyQt5.QtCore import QRectF, Qt, QByteArray, QPointF
 
@@ -32,25 +34,36 @@ class MyCanvas(QGraphicsView):
         #curve
         self.curve_stage=0
         self.curve_pid=-1
-        '''
-        self.curve_ok=QPushButton("OK",self)
-        self.curve_ok.setEnabled(False)
-        self.curve_ok.clicked.connect(self.finish_draw)
-        self.curve_ok.move(495,550)
-        self.curve_ok.setVisible(False)
-        '''
+
         #translate,rotate,scale
         self.transform_stage=0
         self.start_point=[]
         self.start_pos=[]
         self.centre=[]
-        self.pos_label=QLabel(self)
-        self.pos_label.move(100,200)
-        self.red_sld = QSlider(Qt.Horizontal, self)
-        self.red_sld.hide()
 
         #clip
         self.rect=None
+
+    def clear_canvas(self):
+        for i in self.item_dict:
+            self.scene().removeItem(self.item_dict[i])
+        self.item_dict = {}
+        self.selected_id = ''
+        self.status = ''
+        self.temp_algorithm = ''
+        self.temp_id = ''
+        self.temp_item = None
+        #curve
+        self.curve_stage=0
+        self.curve_pid=-1
+        #translate,rotate,scale
+        self.transform_stage=0
+        self.start_point=[]
+        self.start_pos=[]
+        self.centre=[]
+        #clip
+        self.rect=None
+        self.updateScene([self.sceneRect()])
 
     def start_draw_line(self, algorithm, item_id):
         self.status = 'line'
@@ -389,6 +402,10 @@ class MainWindow(QMainWindow):
         #color
         self.color=QColor(0,0,0)
 
+        #size
+        self.width=600
+        self.height=600
+
         # 设置菜单栏
         menubar = self.menuBar()
         file_menu = menubar.addMenu('文件')
@@ -416,11 +433,12 @@ class MainWindow(QMainWindow):
         clip_liang_barsky_act = clip_menu.addAction('Liang-Barsky')
         
         # 连接信号和槽函数
+        set_pen_act.triggered.connect(self.set_pen_action)
+        reset_canvas_act.triggered.connect(self.reset_canvas_action)
         exit_act.triggered.connect(qApp.quit)
         line_naive_act.triggered.connect(self.line_naive_action)
         line_dda_act.triggered.connect(self.line_dda_action)
         line_bresenham_act.triggered.connect(self.line_bresenham_action)
-        set_pen_act.triggered.connect(self.set_pen_action)
         polygon_dda_act.triggered.connect(self.polygon_dda_action)
         polygon_bresenham_act.triggered.connect(self.polygon_bresenham_action)
         ellipse_act.triggered.connect(self.ellipse_action)
@@ -436,11 +454,11 @@ class MainWindow(QMainWindow):
             self.canvas_widget.selection_changed)
 
         # 设置主窗口的布局
-        self.hbox_layout = QHBoxLayout()
-        self.hbox_layout.addWidget(self.canvas_widget)
-        self.hbox_layout.addWidget(self.list_widget, stretch=1)
+        self.heightbox_layout = QHBoxLayout()
+        self.heightbox_layout.addWidget(self.canvas_widget)
+        self.heightbox_layout.addWidget(self.list_widget, stretch=1)
         self.central_widget = QWidget()
-        self.central_widget.setLayout(self.hbox_layout)
+        self.central_widget.setLayout(self.heightbox_layout)
         self.setCentralWidget(self.central_widget)
         self.statusBar().showMessage('空闲')
         self.resize(600, 600)
@@ -450,6 +468,57 @@ class MainWindow(QMainWindow):
         _id = str(self.item_cnt)
         self.item_cnt += 1
         return _id
+
+    def set_pen_action(self):
+        self.statusBar().showMessage('设置画笔')
+        color = QColorDialog.getColor()
+        if color.isValid():
+            self.color=color
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
+
+    def reset_canvas_action(self):
+        self.item_cnt=0
+        self.statusBar().showMessage('重置画布')
+        min_width,min_height,max_width,max_height=50,50,600,600
+        dialog = QDialog()
+        dialog.setWindowTitle('重置画布')
+        width_box = QSpinBox(dialog)
+        width_box.setRange(min_width, max_width)
+        width_box.setSingleStep(1)
+        width_box.setValue(self.width)
+        height_box = QSpinBox(dialog)
+        height_box .setRange(min_height, max_height)
+        height_box .setSingleStep(1)
+        height_box .setValue(self.height)
+        confirm_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        confirm_box.accepted.connect(dialog.accept)
+        confirm_box.rejected.connect(dialog.reject)
+        formlayout = QFormLayout(dialog)
+        formlayout.addRow('Width:', width_box)
+        formlayout.addRow('Height:', height_box)
+        formlayout.addRow(confirm_box)
+        
+        if dialog.exec():
+            if(width_box.value()<min_width or width_box.value()>max_width or height_box.value()<min_height or height_box.value()>max_height):
+                QMessageBox.about(self, "提示", "修改失败,请输入50~600的数字")
+            else:
+                self.widthidth = width_box.value()
+                self.heighteight = height_box.value()
+            self.canvas_widget.clear_canvas()
+            self.list_widget.clearSelection()
+            self.canvas_widget.clear_selection()
+            self.list_widget.clear()
+            self.scene = QGraphicsScene(self)
+            self.scene.setSceneRect(0, 0, self.widthidth, self.heighteight)
+            self.canvas_widget.resize(self.width,self.height)
+            self.canvas_widget.setFixedSize(self.width, self.height)
+            self.statusBar().showMessage('空闲')
+            self.setMaximumHeight(self.height)
+            self.setMaximumWidth(self.width)
+            self.resize(self.width, self.height)
+            #self.canvas_widget.undo_num=0
+            #self.canvas_widget.undo_save=[]
 
     def line_naive_action(self):
         self.canvas_widget.start_draw_line('Naive', self.get_id())
@@ -530,15 +599,6 @@ class MainWindow(QMainWindow):
         self.list_widget.clearSelection()
         self.canvas_widget.clear_selection()
     
-
-    def set_pen_action(self):
-        #self.canvas_widget.set_pen()
-        self.statusBar().showMessage('设置画笔')
-        color = QColorDialog.getColor()
-        if color.isValid():
-            self.color=color
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
