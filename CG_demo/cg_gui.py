@@ -40,7 +40,7 @@ class MyCanvas(QGraphicsView):
         self.points_num=3
         self.num_box = QSpinBox(self)
         self.num_box.hide()
-        self.label=QLabel("Bezier算法控制点数:",self)
+        self.label=QLabel("控制点数:",self)
         self.label.hide()
 
         #translate,rotate,scale
@@ -118,6 +118,10 @@ class MyCanvas(QGraphicsView):
         self.temp_id = item_id
         self.label.setGeometry(20,20,120,20)
         self.label.show()
+        if algorithm=="Bezier":
+            self.num_box.setRange(2, 10)
+        elif algorithm=="B-spline":
+            self.num_box.setRange(4, 10)
         self.num_box.setRange(2, 10)
         self.num_box.setSingleStep(1)
         self.num_box.setValue(self.points_num)

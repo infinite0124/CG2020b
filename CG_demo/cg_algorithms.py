@@ -201,13 +201,26 @@ def draw_curve(p_list, algorithm,flag=0):
                     px[j] = (1 - u) * px[j] + u * px[j + 1]
                     py[j] = (1 - u) * py[j] + u * py[j + 1]
             points.append((int(px[0]), int(py[0])))
+        for i in range(0,len(points) - 1):
+            line = [points[i], points[i + 1]]
+            result.extend(draw_line(line, "DDA"))
     elif algorithm == "B-spline":
-        pass
+        k = 4
+        n=len(p_list)
+        if n<4:
+            return result
+        du=1/1000
+        u =k-1
+        while u<=n:
+            x,y = 0,0
+            for i in range(n):
+                x0,y0 = p_list[i]
+                temp=B(i, k, u)
+                x +=x0*temp
+                y +=y0*temp
+            result.append([int(x), int(y)])
+            u+=du
     
-    for i in range(0,len(points) - 1):
-        line = [points[i], points[i + 1]]
-        result.extend(draw_line(line, "DDA"))
-
     if flag==1:
         for p in p_list:
             x0,y0,x1,y1=p[0]-5,p[1]-5,p[0]+5,p[1]+5
@@ -215,6 +228,14 @@ def draw_curve(p_list, algorithm,flag=0):
        
     return result
 
+def B(i, k, u):
+    if k == 1:
+        if u>=i and u<i+1:
+            return 1
+        else:
+            return 0
+    else:
+        return (u-i)/(k-1)*B(i,k-1,u)+(i+k-u)/(k-1)*B(i+1,k-1,u)
 
 
 def translate(p_list, dx, dy):
