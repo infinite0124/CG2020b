@@ -5,7 +5,6 @@ import sys
 import os
 import cg_algorithms as alg
 import numpy as np
-import math
 from PIL import Image
 
 if __name__ == '__main__':

@@ -208,8 +208,8 @@ def draw_curve(p_list, algorithm,flag=0):
         k = 4
         n=len(p_list)
         if n<4:
-            return result
-        du=1/1000
+            return p_list
+        du=1/100
         u =k-1
         while u<=n:
             x,y = 0,0
@@ -308,8 +308,6 @@ def update(p,q,u):
         u[1]=min(u[1],q/p)
     if u[0]>u[1]:
         res=False
-    print("u:",u)
-    print("res:",res)
     return res
 
 def clip(p_list, x_min, y_min, x_max, y_max, algorithm):

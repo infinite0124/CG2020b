@@ -120,17 +120,21 @@ class MyCanvas(QGraphicsView):
         self.label.show()
         if algorithm=="Bezier":
             self.num_box.setRange(2, 10)
+            self.num_box.setValue(3)
         elif algorithm=="B-spline":
             self.num_box.setRange(4, 10)
+            self.num_box.setValue(4)
         self.num_box.setRange(2, 10)
         self.num_box.setSingleStep(1)
-        self.num_box.setValue(self.points_num)
-        self.num_box.setGeometry(150,20,50,20)
+        self.num_box.setGeometry(100,20,50,20)
         self.num_box.valueChanged.connect(self.set_points_num)
         self.num_box.show()
 
     def set_points_num(self):
+        if self.temp_algorithm=="B-spline" and self.num_box.value()<4:
+            self.num_box.setValue(4)
         self.points_num=self.num_box.value()
+        
 
     def start_translate(self):
         self.unexpected_operation()
