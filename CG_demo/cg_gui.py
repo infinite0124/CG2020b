@@ -37,7 +37,7 @@ class MyCanvas(QGraphicsView):
         #curve
         self.curve_stage=0
         self.curve_pid=-1
-        self.points_num=3
+        self.points_num=0
         self.num_box = QSpinBox(self)
         self.num_box.hide()
         self.label=QLabel("控制点数:",self)
@@ -52,6 +52,10 @@ class MyCanvas(QGraphicsView):
         #clip
         self.rect=None
 
+        #additional_function:
+        self.ctrl_state=0
+        #self.original_state=''
+
     def unexpected_operation(self):
         if self.status=='curve':
             self.curve_end()
@@ -59,6 +63,8 @@ class MyCanvas(QGraphicsView):
             self.label.hide()
         elif self.status=='polygon':
             self.polygon_end()
+        self.clear_selection()
+        self.updateScene([self.sceneRect()])
 
     def clear_canvas(self):
         self.unexpected_operation()
@@ -121,20 +127,22 @@ class MyCanvas(QGraphicsView):
         if algorithm=="Bezier":
             self.num_box.setRange(2, 10)
             self.num_box.setValue(3)
+            self.points_num=3
         elif algorithm=="B-spline":
-            self.num_box.setRange(4, 10)
+            self.num_box.setRange(4, 5)
             self.num_box.setValue(4)
-        self.num_box.setRange(2, 10)
+            self.points_num=4
         self.num_box.setSingleStep(1)
         self.num_box.setGeometry(100,20,50,20)
         self.num_box.valueChanged.connect(self.set_points_num)
         self.num_box.show()
 
     def set_points_num(self):
-        if self.temp_algorithm=="B-spline" and self.num_box.value()<4:
-            self.num_box.setValue(4)
         self.points_num=self.num_box.value()
         
+    def start_choose(self):
+        self.unexpected_operation()
+        self.status='choose'
 
     def start_translate(self):
         self.unexpected_operation()
@@ -154,7 +162,7 @@ class MyCanvas(QGraphicsView):
         self.temp_algorithm=algorithm
 
     def finish_draw(self):
-        self.temp_id = self.main_window.get_id()
+        self.temp_id = self.main_window.get_id(1)
         self.temp_item=None
         self.updateScene([self.sceneRect()])
 
@@ -162,6 +170,11 @@ class MyCanvas(QGraphicsView):
         if self.selected_id != '':
             self.item_dict[self.selected_id].selected = False
             self.selected_id = ''
+            self.main_window.statusBar().showMessage('')
+        self.transform_stage=0
+        self.start_point=[]
+        self.start_pos=[]
+        self.centre=[]
 
     def selection_changed(self, selected):
         self.main_window.statusBar().showMessage('图元选择： %s' % selected)
@@ -189,12 +202,29 @@ class MyCanvas(QGraphicsView):
             self.curve_stage=0
             self.curve_pid=-1
             self.finish_draw()
-            
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         pos = self.mapToScene(event.localPos().toPoint())
         x = int(pos.x())
         y = int(pos.y())
+        '''
+        if self.ctrl_state==1:
+            for key in self.item_dict:
+                if self.item_dict[key].boundingRect().contains(x,y):
+                    self.original_state=self.status
+                    self.selection_changed(key)
+                    break
+        '''
+        if self.selected_id!='':
+            i=0
+            for key in self.item_dict:
+                i+=1
+                if self.item_dict[key] and self.item_dict[key].boundingRect().contains(x,y):
+                    break
+            if i==len(self.item_dict):
+                self.clear_selection()
+                #self.updateScene([self.sceneRect()])
+        
         if self.status == 'line' or self.status == 'ellipse':
             self.temp_item = MyItem(self.temp_id, self.status,
                                     [[x, y], [x, y]], 
@@ -229,12 +259,18 @@ class MyCanvas(QGraphicsView):
                             self.curve_pid=i
             elif event.buttons()==Qt.RightButton:
                 self.curve_end()
+        elif self.status=='choose':
+            for key in self.item_dict:
+                if self.item_dict[key] and self.item_dict[key].boundingRect().contains(x,y):
+                    self.selection_changed(key)
+                    self.status='choose'
+                    break
         elif self.status=='translate' or self.status=='rotate' or self.status=='scale':
             original_status=self.status
             if event.buttons()==Qt.LeftButton:
                 original_selected=self.selected_id
                 for key in self.item_dict:
-                    if self.item_dict[key].boundingRect().contains(x,y):
+                    if self.item_dict[key] and self.item_dict[key].boundingRect().contains(x,y):
                         if original_selected!=key:
                             self.selection_changed(key)
                             self.transform_stage=1
@@ -353,6 +389,35 @@ class MyCanvas(QGraphicsView):
         self.updateScene([self.sceneRect()])
         super().wheelEvent(event)
 
+    def keyPressEvent(self,event):
+        key=event.key()
+        if self.selected_id!='' and key==Qt.Key_Backspace:
+            self.scene().removeItem(self.item_dict[self.selected_id])
+            self.item_dict.pop(self.selected_id)
+            self.selected_id=''
+        if key==Qt.Key_Control:
+            self.ctrl_state=1
+        if self.ctrl_state and key==Qt.Key_C:
+            plist=[]
+            for p in self.item_dict[self.selected_id].p_list:
+                plist.append([p[0]+50,p[1]+50])
+            self.temp_item=MyItem(self.temp_id, self.item_dict[self.selected_id].item_type,
+                                  plist, 
+                                  self.item_dict[self.selected_id].algorithm,
+                                  color=self.item_dict[self.selected_id].color)
+
+        if self.ctrl_state and key==Qt.Key_V:
+            if self.temp_item is not None:
+                self.scene().addItem(self.temp_item)
+                self.item_dict[self.temp_id] = self.temp_item
+                self.list_widget.addItem(self.temp_id)
+                self.finish_draw()
+
+    def keyReleaseEvent(self,event):
+        key=event.key()
+        if key==Qt.Key_Control:
+            self.ctrl_state=0
+
 class MyItem(QGraphicsItem):
     """
     自定义图元类，继承自QGraphicsItem
@@ -382,6 +447,14 @@ class MyItem(QGraphicsItem):
         self.color=color
         self.flag=flag
 
+    def copy(item):
+        self.id = item.id  # 图元ID
+        self.item_type = item.item_type  # 图元类型，'line'、'polygon'、'ellipse'、'curve'等
+        self.p_list = item.p_list  # 图元参数
+        self.algorithm = item.algorithm  # 绘制算法，'DDA'、'Bresenham'、'Bezier'、'B-spline'等
+        self.selected = False
+        self.color=item.color
+        self.flag=0
 
     def paint(self,
               painter: QPainter,
@@ -498,6 +571,7 @@ class MainWindow(QMainWindow):
         curve_bezier_act = curve_menu.addAction('Bezier')
         curve_b_spline_act = curve_menu.addAction('B-spline')
         edit_menu = menubar.addMenu('编辑')
+        choose_act = edit_menu.addAction('图元选择')
         translate_act = edit_menu.addAction('平移')
         rotate_act = edit_menu.addAction('旋转')
         scale_act = edit_menu.addAction('缩放')
@@ -518,6 +592,7 @@ class MainWindow(QMainWindow):
         ellipse_act.triggered.connect(self.ellipse_action)
         curve_bezier_act.triggered.connect(self.curve_bezier_action)
         curve_b_spline_act.triggered.connect(self.curve_b_spline_action)
+        choose_act.triggered.connect(self.choose_action)
         translate_act.triggered.connect(self.translate_action)
         rotate_act.triggered.connect(self.rotate_action)
         scale_act.triggered.connect(self.scale_action)
@@ -538,9 +613,10 @@ class MainWindow(QMainWindow):
         self.resize(600, 600)
         self.setWindowTitle('CG Demo')
 
-    def get_id(self):
+    def get_id(self,flag=0):
+        if flag:
+            self.item_cnt += 1
         _id = str(self.item_cnt)
-        self.item_cnt += 1
         return _id
 
     def set_pen_action(self):
@@ -554,7 +630,7 @@ class MainWindow(QMainWindow):
     def reset_canvas_action(self):
         self.item_cnt=0
         self.statusBar().showMessage('重置画布')
-        min_width,min_height,max_width,max_height=50,50,600,600
+        min_width,min_height,max_width,max_height=100,100,1000,1000
         dialog = QDialog()
         dialog.setWindowTitle('重置画布')
         width_box = QSpinBox(dialog)
@@ -591,16 +667,15 @@ class MainWindow(QMainWindow):
                 self.setMaximumHeight(self.height)
                 self.setMaximumWidth(self.width)
                 self.resize(self.width, self.height)
-                print(self.width,self.height)
                 #self.canvas_widget.undo_num=0
                 #self.canvas_widget.undo_save=[]
 
     def save_canvas_action(self):
         self.statusBar().showMessage('保存画布')
         dialog=QFileDialog()
-        filename=dialog.getSaveFileName(filter="Image Files(*.jpg *.png *.bmp)")
+        filename=dialog.getSaveFileName()#(filter="Image Files(*.jpg *.png *.bmp)")
         if filename[0]:
-            self.canvas_widget.save_canvas(filename[0], self.width, self.height)
+            self.canvas_widget.save_canvas(filename[0]+".bmp", self.width, self.height)
         #self.list_widget.clearSelection()
         #self.canvas_widget.clear_selection()
 
@@ -650,6 +725,12 @@ class MainWindow(QMainWindow):
     def curve_b_spline_action(self):
         self.canvas_widget.start_draw_curve('B-spline',self.get_id())
         self.statusBar().showMessage('B-spline算法绘制曲线')
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
+
+    def choose_action(self):
+        self.canvas_widget.start_choose()
+        self.statusBar().showMessage('图元选择')
         self.list_widget.clearSelection()
         self.canvas_widget.clear_selection()
 

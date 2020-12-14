@@ -209,7 +209,7 @@ def draw_curve(p_list, algorithm,flag=0):
         n=len(p_list)
         if n<4:
             return p_list
-        du=1/100
+        du=1/1000
         u =k-1
         while u<=n:
             x,y = 0,0
