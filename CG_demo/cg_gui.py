@@ -162,6 +162,7 @@ class MyCanvas(QGraphicsView):
         self.temp_algorithm=algorithm
 
     def finish_draw(self):
+        #if self.status=='line' or self.status=='ellipse' or self.status=='polygon' or self.status=='curve':
         self.temp_id = self.main_window.get_id(1)
         self.temp_item=None
         self.updateScene([self.sceneRect()])
@@ -369,7 +370,8 @@ class MyCanvas(QGraphicsView):
                        rect=QRectF(self.temp_item.boundingRect())
                        self.item_dict[i].p_list=alg.clip(self.item_dict[i].p_list,rect.left(),rect.top(),rect.right(),rect.bottom(),self.temp_algorithm)
                 self.scene().removeItem(self.temp_item)
-                self.finish_draw()
+                self.temp_item=None
+                #self.finish_draw()
                         
         self.updateScene([self.sceneRect()])
         super().mouseReleaseEvent(event)
