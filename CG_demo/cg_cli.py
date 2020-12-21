@@ -86,7 +86,7 @@ if __name__ == '__main__':
                     'ellipse', [[x0, y0], [x1, y1]], algorithm,
                     np.array(pen_color)
                 ]
-            elif line[0]=='drawCurve':
+            elif line[0] == 'drawCurve':
                 item_id = line[1]
                 i = 2
                 points = []
@@ -98,38 +98,42 @@ if __name__ == '__main__':
                     'curve', points, algorithm,
                     np.array(pen_color)
                 ]
-            elif line[0]=='translate':
+            elif line[0] == 'translate':
                 item_id = line[1]
-                dx=int(line[2])
-                dy=int(line[3])
-                item_dict[item_id][1]=alg.translate(item_dict[item_id][1],dx,dy)
-                
-            elif line[0]=='rotate':
+                dx = int(line[2])
+                dy = int(line[3])
+                item_dict[item_id][1] = alg.translate(item_dict[item_id][1],
+                                                      dx, dy)
+
+            elif line[0] == 'rotate':
                 item_id = line[1]
-                x=int(line[2])
-                y=int(line[3])
-                r=float(line[4])
-                item_dict[item_id][1]=alg.rotate(item_dict[item_id][1],x,y,r)
-                
-            elif line[0]=='scale':
+                x = int(line[2])
+                y = int(line[3])
+                r = float(line[4])
+                item_dict[item_id][1] = alg.rotate(item_dict[item_id][1], x, y,
+                                                   r)
+
+            elif line[0] == 'scale':
                 item_id = line[1]
-                x=int(line[2])
-                y=int(line[3])
-                s=float(line[4])
-                item_dict[item_id][1]=alg.scale(item_dict[item_id][1],x,y,s)
-            
-            elif line[0]=='clip':
-                item_id=line[1]
-                x0=int(line[2])
-                y0=int(line[3])
-                x1=int(line[4])
-                y1=int(line[5])
-                x_min=min(x0,x1)
-                x_max=max(x0,x1)
-                y_min=min(y0,y1)
-                y_max=max(y0,y1)
-                algorithm=line[6]
-                p_list=[item_dict[item_id][1][0],item_dict[item_id][1][-1]]
-                item_dict[item_id][1]=alg.clip(p_list,x_min,y_min,x_max,y_max,algorithm)
-                
+                x = int(line[2])
+                y = int(line[3])
+                s = float(line[4])
+                item_dict[item_id][1] = alg.scale(item_dict[item_id][1], x, y,
+                                                  s)
+
+            elif line[0] == 'clip':
+                item_id = line[1]
+                x0 = int(line[2])
+                y0 = int(line[3])
+                x1 = int(line[4])
+                y1 = int(line[5])
+                x_min = min(x0, x1)
+                x_max = max(x0, x1)
+                y_min = min(y0, y1)
+                y_max = max(y0, y1)
+                algorithm = line[6]
+                p_list = [item_dict[item_id][1][0], item_dict[item_id][1][-1]]
+                item_dict[item_id][1] = alg.clip(p_list, x_min, y_min, x_max,
+                                                 y_max, algorithm)
+
             line = fp.readline()

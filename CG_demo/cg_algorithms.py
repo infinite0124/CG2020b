@@ -47,8 +47,8 @@ def draw_line(p_list, algorithm):
         if x0 > x1:
             x0, y0, x1, y1 = x1, y1, x0, y0
         if x0 == x1:
-            if y0>y1:
-                y0,y1=y1,y0
+            if y0 > y1:
+                y0, y1 = y1, y0
             for y in range(y0, y1 + 1):
                 result.append((int(x0), int(y)))
         else:
@@ -102,7 +102,7 @@ def draw_line(p_list, algorithm):
     return result
 
 
-def draw_polygon(p_list, algorithm,flag=0):
+def draw_polygon(p_list, algorithm, flag=0):
     """绘制多边形
 
     :param p_list: (list of list of int: [[x0, y0], [x1, y1], [x2, y2], ...]) 多边形的顶点坐标列表
@@ -110,12 +110,12 @@ def draw_polygon(p_list, algorithm,flag=0):
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 绘制结果的像素点坐标列表
     """
     result = []
-    if flag==0:
+    if flag == 0:
         for i in range(len(p_list)):
             line = draw_line([p_list[i - 1], p_list[i]], algorithm)
             result += line
-    elif flag==1:
-        for i in range(1,len(p_list)):
+    elif flag == 1:
+        for i in range(1, len(p_list)):
             line = draw_line([p_list[i - 1], p_list[i]], algorithm)
             result += line
     return result
@@ -175,67 +175,69 @@ def draw_ellipse(p_list):
     return result
 
 
-def draw_curve(p_list, algorithm,flag=0):
+def draw_curve(p_list, algorithm, flag=0):
     """绘制曲线
 
     :param p_list: (list of list of int: [[x0, y0], [x1, y1], [x2, y2], ...]) 曲线的控制点坐标列表
     :param algorithm: (string) 绘制使用的算法，包括'Bezier'和'B-sp1ine'（三次均匀B样条曲线，曲线不必经过首末控制点）
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 绘制结果的像素点坐标列表
     """
-    
-    result=[]
+
+    result = []
     n = len(p_list)
     points = []
     px, py = [], []
-    precision=100
-    
+    precision = 100
+
     for i in range(n):
-        px.append (p_list[i][0])
-        py.append (p_list[i][1])
-    
+        px.append(p_list[i][0])
+        py.append(p_list[i][1])
+
     if algorithm == "Bezier":
         for u in range(0, precision):
             u = u / precision
             for i in range(1, n):
-                for j in range(0,n - i):
+                for j in range(0, n - i):
                     px[j] = (1 - u) * px[j] + u * px[j + 1]
                     py[j] = (1 - u) * py[j] + u * py[j + 1]
             points.append((int(px[0]), int(py[0])))
-        for i in range(0,len(points) - 1):
+        for i in range(0, len(points) - 1):
             line = [points[i], points[i + 1]]
             result.extend(draw_line(line, "DDA"))
     elif algorithm == "B-spline":
         k = 4
-        n=len(p_list)
-        if n<4:
+        n = len(p_list)
+        if n < 4:
             return p_list
-        du=1/1000
-        u =k-1
-        while u<=n:
-            x,y = 0,0
+        du = 1 / 1000
+        u = k - 1
+        while u <= n:
+            x, y = 0, 0
             for i in range(n):
-                x0,y0 = p_list[i]
-                temp=B(i, k, u)
-                x +=x0*temp
-                y +=y0*temp
+                x0, y0 = p_list[i]
+                temp = B(i, k, u)
+                x += x0 * temp
+                y += y0 * temp
             result.append([int(x), int(y)])
-            u+=du
-    
-    if flag==1:
+            u += du
+
+    if flag == 1:
         for p in p_list:
-            x0,y0,x1,y1=p[0]-5,p[1]-5,p[0]+5,p[1]+5
-            result.extend(draw_ellipse([[x0,y0],[x1,y1]]))
-       
+            x0, y0, x1, y1 = p[0] - 5, p[1] - 5, p[0] + 5, p[1] + 5
+            result.extend(draw_ellipse([[x0, y0], [x1, y1]]))
+
     return result
+
 
 def B(i, k, u):
     if k == 1:
-        if u>=i and u<i+1:
+        if u >= i and u < i + 1:
             return 1
         else:
             return 0
     else:
-        return (u-i)/(k-1)*B(i,k-1,u)+(i+k-u)/(k-1)*B(i+1,k-1,u)
+        return (u - i) / (k - 1) * B(i, k - 1, u) + (i + k - u) / (k - 1) * B(
+            i + 1, k - 1, u)
 
 
 def translate(p_list, dx, dy):
@@ -246,9 +248,9 @@ def translate(p_list, dx, dy):
     :param dy: (int) 垂直方向平移量
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
     """
-    result=[]
+    result = []
     for p in p_list:
-        result.append((p[0]+dx,p[1]+dy))
+        result.append((p[0] + dx, p[1] + dy))
     return result
 
 
@@ -261,12 +263,12 @@ def rotate(p_list, x, y, r):
     :param r: (int) 顺时针旋转角度（°）
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
     """
-    h=math.radians(r)
-    result=[]
+    h = math.radians(r)
+    result = []
     for p in p_list:
-        x1=x+(p[0]-x)*math.cos(h)-(p[1]-y)*math.sin(h)
-        y1=y+(p[0]-x)*math.sin(h)+(p[1]-y)*math.cos(h)
-        result.append((int(x1),int(y1)))
+        x1 = x + (p[0] - x) * math.cos(h) - (p[1] - y) * math.sin(h)
+        y1 = y + (p[0] - x) * math.sin(h) + (p[1] - y) * math.cos(h)
+        result.append((int(x1), int(y1)))
     return result
 
 
@@ -279,36 +281,41 @@ def scale(p_list, x, y, s):
     :param s: (float) 缩放倍数
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
     """
-    result=[]
+    result = []
     for p in p_list:
-        x1=p[0]*s+x*(1-s)
-        y1=p[1]*s+y*(1-s)
-        result.append((int(x1),int(y1)))
+        x1 = p[0] * s + x * (1 - s)
+        y1 = p[1] * s + y * (1 - s)
+        result.append((int(x1), int(y1)))
     return result
 
-def encode(x,y,x_min,y_min,x_max,y_max):
-    c=(int(y>y_max)<<3)+(int(y<y_min)<<2)+(int(x>x_max)<<1)+int(x<x_min)
-    return c#Liang-Barsky
 
-def inter_point(border,x1,y1,x2,y2):
-    if x1!=x2:
-        u=(border-x1)/(x2-x1)
-        if u>=0 and u<=1:#valid
-            return [border,int(y1+u*(y2-y1))]
+def encode(x, y, x_min, y_min, x_max, y_max):
+    c = (int(y > y_max) << 3) + (int(y < y_min) << 2) + (
+        int(x > x_max) << 1) + int(x < x_min)
+    return c  #Liang-Barsky
+
+
+def inter_point(border, x1, y1, x2, y2):
+    if x1 != x2:
+        u = (border - x1) / (x2 - x1)
+        if u >= 0 and u <= 1:  #valid
+            return [border, int(y1 + u * (y2 - y1))]
         else:
-            return [x1,y1]
-            
-def update(p,q,u):
-    res=True
-    if p==0 and q<0:
-        res=False
-    if p<0:
-        u[0]=max(u[0],q/p)
-    elif p>0:
-        u[1]=min(u[1],q/p)
-    if u[0]>u[1]:
-        res=False
+            return [x1, y1]
+
+
+def update(p, q, u):
+    res = True
+    if p == 0 and q < 0:
+        res = False
+    if p < 0:
+        u[0] = max(u[0], q / p)
+    elif p > 0:
+        u[1] = min(u[1], q / p)
+    if u[0] > u[1]:
+        res = False
     return res
+
 
 def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
     """线段裁剪
@@ -321,59 +328,56 @@ def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
     :param algorithm: (string) 使用的裁剪算法，包括'Cohen-Sutherland'和'Liang-Barsky'
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1]]) 裁剪后线段的起点和终点坐标
     """
-    x1,y1=p_list[0]
-    x2,y2=p_list[1]
-    result=[]
-    if algorithm=='Cohen-Sutherland':
-        flag=1
-        i=0
+    x1, y1 = p_list[0]
+    x2, y2 = p_list[1]
+    result = []
+    if algorithm == 'Cohen-Sutherland':
+        flag = 1
+        i = 0
         while flag:
-            i+=1
-            if i>4:
+            i += 1
+            if i > 4:
                 break
-            c1=encode(x1,y1,x_min,y_min,x_max,y_max)
-            c2=encode(x2,y2,x_min,y_min,x_max,y_max)
-            if (c1 & c2)==0:#probably part of line in window
-                if (c1 or c2)!=0:#at least one point out of window
-                    if c1==0:# p1 in window,exchange p1 and p2 to ensure p1 out of window
-                        temp_x=x1
-                        temp_y=y1
-                        x1=x2
-                        y1=y2
-                        x2=temp_x
-                        y2=temp_y
-                    if c1&1:#left
-                        x1,y1=inter_point(x_min,x1,y1,x2,y2)
-                    elif c1&2:#right
-                        x1,y1=inter_point(x_max,x1,y1,x2,y2)
-                    elif c1&4:#down
-                        y1,x1=inter_point(y_min,y1,x1,y2,x2)
-                    elif c1&8:#up
-                        y1,x1=inter_point(y_max,y1,x1,y2,x2)
-                else:#p1 and p2 both in window
-                    flag=0
-            else:# line out of window      
-                flag=0
-        result=[[int(x1),int(y1)],[int(x2),int(y2)]]
-    elif algorithm=='Liang-Barsky':
-        u=[0,1]
-        dx=x2-x1
-        dy=y2-y1
-        p1,p2,p3,p4=dx,dx,dy,dy
-        q1,q2,q3,q4=x1-x_min,x_max-x1,y1-y_min,y_max-y1
-        if update(-p1,q1,u):
-            if update(p2,q2,u):
-                if update(-p3,q3,u):
-                    if update(p4,q4,u):
-                        u1,u2=u
-                        if u2<1:
-                            x2=x1+u2*dx
-                            y2=y1+u2*dy
-                        if u1>0:
-                            x1=x1+u1*dx
-                            y1=y1+u1*dy
-        result=[[int(x1),int(y1)],[int(x2),int(y2)]]
+            c1 = encode(x1, y1, x_min, y_min, x_max, y_max)
+            c2 = encode(x2, y2, x_min, y_min, x_max, y_max)
+            if (c1 & c2) == 0:  #probably part of line in window
+                if (c1 or c2) != 0:  #at least one point out of window
+                    if c1 == 0:  # p1 in window,exchange p1 and p2 to ensure p1 out of window
+                        temp_x = x1
+                        temp_y = y1
+                        x1 = x2
+                        y1 = y2
+                        x2 = temp_x
+                        y2 = temp_y
+                    if c1 & 1:  #left
+                        x1, y1 = inter_point(x_min, x1, y1, x2, y2)
+                    elif c1 & 2:  #right
+                        x1, y1 = inter_point(x_max, x1, y1, x2, y2)
+                    elif c1 & 4:  #down
+                        y1, x1 = inter_point(y_min, y1, x1, y2, x2)
+                    elif c1 & 8:  #up
+                        y1, x1 = inter_point(y_max, y1, x1, y2, x2)
+                else:  #p1 and p2 both in window
+                    flag = 0
+            else:  # line out of window
+                flag = 0
+        result = [[int(x1), int(y1)], [int(x2), int(y2)]]
+    elif algorithm == 'Liang-Barsky':
+        u = [0, 1]
+        dx = x2 - x1
+        dy = y2 - y1
+        p1, p2, p3, p4 = dx, dx, dy, dy
+        q1, q2, q3, q4 = x1 - x_min, x_max - x1, y1 - y_min, y_max - y1
+        if update(-p1, q1, u):
+            if update(p2, q2, u):
+                if update(-p3, q3, u):
+                    if update(p4, q4, u):
+                        u1, u2 = u
+                        if u2 < 1:
+                            x2 = x1 + u2 * dx
+                            y2 = y1 + u2 * dy
+                        if u1 > 0:
+                            x1 = x1 + u1 * dx
+                            y1 = y1 + u1 * dy
+        result = [[int(x1), int(y1)], [int(x2), int(y2)]]
     return result
-    
-
-        
